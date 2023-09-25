@@ -1,9 +1,11 @@
 require 'prawn'
+require 'yaml'
 
 Prawn::Fonts::AFM.hide_m17n_warning = true
 
 def main
 	check_args
+	load_styles
 	create_pdf
 end
 
@@ -13,6 +15,11 @@ def check_args
 		puts 'use: ruby md_to_pdf.rb MARKDOWN_FILE'
 		exit 1
 	end
+end
+
+def load_styles
+	styles = YAML.load_file("styles.yml")
+	@styles = styles["styles"]
 end
 
 def create_pdf
@@ -36,47 +43,48 @@ def create_pdf
 			elsif line.start_with?("\t-")
 				list_item(line, 1)
 			else
-				@pdf.text line, align: :left
-				@pdf.move_down 2
+				paragraph(text)
+
 			end
 			move_y 10
 		end
 	end
 
+	# todo, implement
+	# - italics
+	# - bold
+	# - tables
+	# - underline
+	# - links
+
+
 	@pdf.render_file("output.pdf")
+end
+
+def paragraph(text)
+	@pdf.text line, align: :left
+	@pdf.move_down 2
 end
 
 def hr
 	@pdf.line [ 0, @pdf.cursor ], [ 550, @pdf.cursor ]
+	@pdf.stroke
 end
 
 def header(line)
 	levels_str, text = line.split(" ", 2)
 	levels = levels_str.count('#')
-
-	case levels
-	when 1
-		@pdf.font_size 24
-		@pdf.text text, align: :left, style: :bold
-		@pdf.move_down 8
-	when 2
-		@pdf.font_size 18
-		@pdf.text text, align: :left, style: :bold
-		hr
-		@pdf.move_down 6
-	when 3
-		@pdf.font_size 14
-		@pdf.text text, align: :left
-		@pdf.move_down 4
-	when 4
-		@pdf.font_size 12
-		@pdf.text text, align: :left
-		@pdf.move_down 2
-	else
-		@pdf.font_size 24
-		@pdf.text text, align: :left
-		@pdf.move_down 8
+	header_class = begin
+		if (1..4).include? levels
+			("h" + levels.to_s)
+		else
+			'h2'
+		end
 	end
+	@pdf.font_size @styles[header_class]['fontSize']
+	@pdf.move_down 8
+	@pdf.text text, align: :left, style: @styles[header_class]['fontStyle']
+	@pdf.move_down 8
 	@pdf.font_size 10
 end
 
@@ -92,6 +100,11 @@ def list_item(line, level=0)
 	@pdf.bounding_box [25 + offset, @pdf.cursor], width: (500 - offset) do
 		@pdf.text text, align: :left
 	end
+end
+	
+def link(text)
+	title, link = text.gsub("[", "").gsub("]", "").split("|")
+	@pdf.text "<u><link href='#{link}'><color rgb='#{@styles['link']['color']}'>#{title}</color></link></u>", inline_format: true
 end
 
 def	move_y(i)
