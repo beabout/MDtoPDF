@@ -1,0 +1,9 @@
+rules:
+  link_rules:
+    a:
+      query:
+        if_text_matches: 
+          - "OSIS-[0-9]{5}"
+          - "HU22DM-[0-9]{5}"
+      return:
+        prefix_with: "https://asc.bmwgroup.net/mgujira/browse://asc.bmwgroup.net/mgujira/browse/"
